@@ -1,0 +1,594 @@
+package ClientServerArchitureProject;
+
+import javax.swing.*;
+import java.awt.*;
+import java.sql.SQLException;
+
+public class ClientGUI extends JFrame {
+
+    // Constructs the size of the JFrame
+    private final int WIDTH = 512;
+    private final int HEIGHT = 600;
+
+    // Construct the GUI for the connection page
+    private final ConnectionGUI connectionGUI;
+    private LoginPage loginPage;
+    private RegisterPage registerPage;
+    private LoggedInPage loggedInPage;
+
+    private Client client = new Client();
+    private User user;
+
+
+    public ClientGUI() {
+
+        // Constructs the JFrame and gives the name to the page
+        super("Connect to server");
+
+        // Initialize the size of the page
+        this.setSize(WIDTH, HEIGHT);
+
+        // Sets the JFrame to the center
+        this.setLocationRelativeTo(null);
+
+        // Shuts down the app when the frame is closed
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Sets the layout manager
+        setLayout(new BorderLayout(5, 5));
+
+        // Constructs the ConnectionGUI class and sets it to the center
+        connectionGUI = new ConnectionGUI();
+        this.add(connectionGUI, BorderLayout.CENTER);
+
+        // Make it so the user can't resize the JFrame
+        this.setResizable(false);
+
+        // Makes the JFrame visible to the user
+        this.setVisible(true);
+    }
+
+    // Inner class with contents within the connection screen
+    public class ConnectionGUI extends JPanel {
+
+        // Constructs the text, text field, and buttons for the connection screen
+        private final JLabel welcometext = new JLabel("Welcome! Please enter the IP Address to the server.");
+        private final JLabel iptext = new JLabel("IP Address");
+        private JTextField iptextfield;
+        private JButton connectionbutton;
+
+        public ConnectionGUI() {
+
+            // Calls the method that handles events
+            ConnectionGUIEvents();
+
+            // Set the layout manager for the main panel
+            setLayout(new BorderLayout(5, 5));
+
+            // The following are the design for the JPanel
+            // Create the Welcome text
+            welcometext.setFont(new Font("Arial", Font.BOLD, 16));
+            welcometext.setHorizontalAlignment(JLabel.CENTER);
+
+            // Create a JPanel just for IP label + field
+            JPanel ipPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+            ipPanel.add(iptext);
+            ipPanel.add(iptextfield);
+
+            // Create a JPanel in the center to arrange everything vertically
+            JPanel centerPanel = new JPanel();
+            centerPanel.setLayout(new GridLayout(3, 1, 10, 10));
+            centerPanel.add(welcometext);
+            centerPanel.add(ipPanel);
+
+            // Create a small JPanel for the connection button
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+            connectionbutton.setPreferredSize(new Dimension(100, 30));
+            buttonPanel.add(connectionbutton);
+
+            // Add the JPanel instead of adding the button directly
+            centerPanel.add(buttonPanel);
+
+            // Add the center JPanel to the main panel
+            this.add(centerPanel, BorderLayout.CENTER);
+        }
+
+        public void ConnectionGUIEvents() {
+
+            iptextfield = new JTextField(15);
+            connectionbutton = new JButton("Connect");
+//NICO EDIT
+            // uses real socket-based connection check
+            connectionbutton.addActionListener(arg0 -> {
+                String userInput = iptextfield.getText().trim();
+                //change port if need be (i was just spitballin)
+                if (client.connectToServer(userInput, 8000)) {
+                    iptextfield.setText("");
+                    ClientGUI.this.setVisible(false);
+                    new LoginPage();
+                } else {
+                    JOptionPane popup = new JOptionPane("Connection Invalid", JOptionPane.ERROR_MESSAGE);
+                    final JDialog dialog = popup.createDialog(ClientGUI.this, "Error");
+                    dialog.setModal(false);
+                    dialog.setVisible(true);
+                    //window pops up for 3 secs then kicks user back to orignal screen
+                    new Timer(3000, e -> {
+                        dialog.setVisible(false);
+                        dialog.dispose();
+                    }).start();
+                }
+            });
+        }
+    }
+
+    // Inner class for the login page
+    public class LoginPage extends JFrame {
+
+        // Sets the size of the JFrame(s)
+        private final int WIDTH = 512;
+        private final int HEIGHT = 600;
+
+        // Constructs the GUI for the login page
+        private final LoginGUI loginGUI;
+
+        public LoginPage() {
+
+            // Constructs the JFrame and gives the name to the page
+            super("Login");
+
+            // Initialize the size of the page
+            this.setSize(WIDTH, HEIGHT);
+
+            // Sets the JFrame to the center
+            this.setLocationRelativeTo(null);
+
+            // Shuts down the app when the frame is closed
+            this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            // Sets the layout manager
+            setLayout(new BorderLayout(5, 5));
+
+            // Constructs the ConnectionGUI class and sets it to the center
+            loginGUI = new LoginGUI();
+            this.add(loginGUI, BorderLayout.CENTER);
+
+            // Make it so the user can't resize the JFrame
+            this.setResizable(false);
+
+            // Makes the JFrame visible to the user
+            this.setVisible(true);
+        }
+
+        // Inner class within LoginPage which has the contents of login screen
+        public class LoginGUI extends JPanel {
+
+            // Constructs the text, text field, and buttons for the login screen
+            private final JLabel usernametext = new JLabel("Username");
+            private JTextField usernamefield;
+            private final JLabel passwordtext = new JLabel("Password");
+            private JTextField passwordfield;
+            private JButton loginbutton;
+            private JButton newuserbutton;
+            private JButton recoverybutton;
+            private JButton disconnect;
+
+            public LoginGUI() {
+
+                // Calls the method that handles events
+                LoginGUIEvents();
+
+                // Set the layout manager for the main JPanel
+                setLayout(new GridLayout(10, 1, 5, 5));
+
+                // Adds the items in order into the JPanel
+                this.add(usernametext);
+                this.add(usernamefield);
+                this.add(passwordtext);
+                this.add(passwordfield);
+                this.add(loginbutton);
+                this.add(newuserbutton);
+                this.add(recoverybutton);
+                this.add(disconnect);
+            }
+
+            private void LoginGUIEvents() {
+
+                // Initializes the text field
+                usernamefield = new JTextField(15);
+                passwordfield = new JTextField(15);
+
+                // Attempts to log into the server
+                // Placeholder: Needs to check in the database if the credentials are valid
+                loginbutton = new JButton("Login");
+                loginbutton.addActionListener(arg0 -> {
+                    String username = usernamefield.getText();
+                    String password = passwordfield.getText();
+                    System.out.println(username);
+                    try {
+                        String result = client.login(username, password);
+                        if(result.equals("UR IN")){
+                            LoginPage.this.dispose();
+                            loggedInPage = new LoggedInPage();
+                            user = client.createUser(username);
+                        }else{
+                            JOptionPane.showMessageDialog(this, result, "ERROR", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                });
+
+
+                // If the user does not have an account, they'll need to create an account
+                newuserbutton = new JButton("Create new account");
+                newuserbutton.addActionListener(arg0 -> {
+                    System.out.println("User is requesting a new account");
+                    LoginPage.this.setVisible(false);
+                    new RegisterPage();
+                });
+
+                // If the user is locked out or can't remember their password, they'll need to give their username and an email will be sent associated with the password
+                // Placeholder: Use the SQL to send/update the user's password
+                recoverybutton = new JButton("Password recovery");
+                recoverybutton.addActionListener(arg0 -> {
+                    System.out.println("User is requesting a password recovery");
+                    LoginPage.this.setVisible(false);
+                    new RecoveryPage();
+                });
+
+                // Disconnects the user from the server
+                disconnect = new JButton("Disconnect");
+                disconnect.addActionListener(arg0 -> {
+                    System.out.println("User is attempting to disconnect from the server");
+                    client.disconnect();
+                    //System.out.println("User attempt to disconnect from the server was successful");
+                    LoginPage.this.dispose();
+                    ClientGUI.this.setVisible(true);
+                });
+            }
+        }
+    }
+
+    // Inner class for the registration page
+    public class RegisterPage extends JFrame {
+
+        // Sets the size of the JFrame(s)
+        private final int WIDTH = 670;
+        private final int HEIGHT = 600;
+
+        // Constructs the GUI for the login page
+        private final RegisterGUI registerGUI;
+
+        public RegisterPage() {
+
+            // Constructs the JFrame and gives the name to the page
+            super("New user registration");
+
+            // Initialize the size of the page
+            this.setSize(WIDTH, HEIGHT);
+
+            // Sets the JFrame to the center
+            this.setLocationRelativeTo(null);
+
+            // Shuts down the app when the frame is closed
+            this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            // Sets the layout manager
+            setLayout(new BorderLayout());
+
+            // Constructs the RegisterGUI class and sets it to the center
+            registerGUI = new RegisterGUI();
+            this.add(registerGUI, BorderLayout.CENTER);
+
+            // Make it so the user can't resize the JFrame
+            this.setResizable(false);
+
+            // Makes the JFrame visible to the user
+            this.setVisible(true);
+        }
+
+        // Inner class within RegistrationPage which has the contents of registration screen
+        public class RegisterGUI extends JPanel {
+
+            // Constructs the text, text field, and buttons for the register screen
+            private final JLabel usernametext = (new JLabel("Username"));
+            private final JTextField usernamefield;
+            private final JLabel passwordtext = (new JLabel("Password (Must have 8 characters minimum with 1 upper and lowercase letters, " +
+                    "1 digit, and 1 special character)"));
+            private final JPasswordField passwordfield;
+            private final JLabel confirmpasswordtext = (new JLabel("Confirm Password"));
+            private final JPasswordField confirmpasswordfield;
+            private final JLabel emailtext = (new JLabel("Email"));
+            private final JTextField emailfield;
+            private final JButton createaccount;
+            private final JButton cancel;
+
+            public RegisterGUI() {
+
+                // Initializes text fields and buttons before setting up events
+                usernamefield = new JTextField(20);
+                passwordfield = new JPasswordField(20);
+                confirmpasswordfield = new JPasswordField(20);
+                emailfield = new JTextField(20);
+                createaccount = new JButton("Create account");
+                cancel = new JButton("Back to login");
+
+                // Set the layout manager for the main JPanel
+                setLayout(new GridLayout(10, 1, 5, 5));
+
+                // Adds the items in order into the JPanel
+                this.add(usernametext);
+                this.add(usernamefield);
+                this.add(passwordtext);
+                this.add(passwordfield);
+                this.add(confirmpasswordtext);
+                this.add(confirmpasswordfield);
+                this.add(emailtext);
+                this.add(emailfield);
+                this.add(createaccount);
+                this.add(cancel);
+
+                // Calls the method that handles events
+                RegisterGUIEvents();
+            }
+
+            private void RegisterGUIEvents() {
+
+                // Creating an account
+                createaccount.addActionListener(arg0 -> {
+                    String username = usernamefield.getText();
+                    String password = new String(passwordfield.getPassword());
+                    String confirmpassword = new String(confirmpasswordfield.getPassword());
+                    String email = emailfield.getText();
+
+                    // Checks if all the fields are filled out
+                    if (username.isEmpty() || password.isEmpty() || confirmpassword.isEmpty() || email.isEmpty()) {
+                        JOptionPane.showMessageDialog(this, "Please fill out all the fields", "Error", JOptionPane.ERROR_MESSAGE);
+                        System.out.println("An error has occurred and can't make an account. Please enter all the fields and try again.");
+                        return;
+                    }
+
+                    // Checks if the password matches between both password fields
+                    if (!password.equals(confirmpassword)) {
+                        JOptionPane.showMessageDialog(this, "Passwords do not match.", "Error", JOptionPane.ERROR_MESSAGE);
+                        System.out.println("An error has occurred and an account can't be created. Please have the passwords match and try again.");
+                        return;
+                    }
+
+                    try {
+                        String result = client.register(username, password, email);
+                        if(result.equals("Account created successfully!")){
+                            JOptionPane.showMessageDialog(this, result, "Success", JOptionPane.INFORMATION_MESSAGE);
+                        }else{
+                            JOptionPane.showMessageDialog(this, result, "ERROR", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    // After success, close registration and show login again
+                    RegisterPage.this.setVisible(false);
+                    new LoginPage();
+                });
+
+                // Goes back to the login page
+                cancel.addActionListener(arg0 -> {
+                    RegisterPage.this.setVisible(false);
+                    new LoginPage();
+                });
+            }
+        }
+    }
+
+    // Inner class for the logged in page
+    public class LoggedInPage extends JFrame {
+
+        // Sets the size of the JFrame(s)
+        private final int WIDTH = 520;
+        private final int HEIGHT = 600;
+
+        // Constructs the GUI for the login page
+        private final LoggedInGUI loggedInGUI;
+
+        public LoggedInPage() {
+
+            // Constructs the JFrame and gives the name to the page
+            super("Logged In");
+
+            // Initialize the size of the page
+            this.setSize(WIDTH, HEIGHT);
+
+            // Sets the JFrame to the center
+            this.setLocationRelativeTo(null);
+
+            // Shuts down the app when the frame is closed
+            this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            this.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
+                    try {
+                        user.logout();
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            });
+            // Sets the layout manager
+            setLayout(new BorderLayout());
+
+            // Constructs the RegisterGUI class and sets it to the center
+            loggedInGUI = new LoggedInGUI();
+            this.add(loggedInGUI, BorderLayout.CENTER);
+
+            // Make it so the user can't resize the JFrame
+            this.setResizable(false);
+
+            // Makes the JFrame visible to the user
+            this.setVisible(true);
+        }
+
+        // Inner class within LoggedInPage which has the contents of logged in screen
+        public class LoggedInGUI extends JPanel {
+
+            // Constructs the text and buttons for the logged in screen
+            private final JLabel signedintext = new JLabel("You successfully logged in! At the moment, there is nothing here. Please come back later");
+            private final JButton logoutbutton;
+            private final JButton disonnectbutton;
+
+            public LoggedInGUI() {
+
+                // Initializes buttons before setting up events
+                logoutbutton = new JButton("Logout");
+                disonnectbutton = new JButton("Disconnect");
+
+                // Set the layout manager for the main JPanel
+                setLayout(new GridLayout(3, 1, 10, 10));
+
+                // Adds the items in order into the JPanel
+                this.add(signedintext);
+                this.add(logoutbutton);
+                this.add(disonnectbutton);
+
+                // Calls the method that handles events
+                LoggedInGUIEvents();
+            }
+
+            private void LoggedInGUIEvents() {
+
+                // Goes back to the login page
+                logoutbutton.addActionListener(arg0 -> {
+                    System.out.println("User is attempting to log out from the server");
+                    try {
+                        user.logout();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    LoggedInPage.this.setVisible(false);
+                    new LoginPage();
+                    System.out.println("User's attempt to log out from the server was successful");
+                });
+
+                // Goes back to the connect page
+                disonnectbutton.addActionListener(arg0 -> {
+                    System.out.println("User is attempting to disconnect from the server");
+                    client.disconnect();
+
+                    try {
+                        user.logout();
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                    LoggedInPage.this.dispose();
+                    ClientGUI.this.setVisible(true);
+                    System.out.println("User's attempt to disconnect from the server was successful");
+                });
+            }
+        }
+    }
+
+    // Inner class for the password recovery page
+    public class RecoveryPage extends JFrame {
+
+        // Sets the size of the JFrame(s)
+        private final int WIDTH = 520;
+        private final int HEIGHT = 600;
+
+        // Constructs the GUI for the login page
+        private final RecoveryGUI recoveryGUI;
+
+        public RecoveryPage(){
+
+            // Constructs the JFrame and gives the name to the page
+            super("Recovery password");
+
+            // Initialize the size of the page
+            this.setSize(WIDTH, HEIGHT);
+
+            // Sets the JFrame to the center
+            this.setLocationRelativeTo(null);
+
+            // Shuts down the app when the frame is closed
+            this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            // Sets the layout manager
+            setLayout(new BorderLayout());
+
+            // Constructs the RegisterGUI class and sets it to the center
+            recoveryGUI = new RecoveryGUI();
+            this.add(recoveryGUI, BorderLayout.CENTER);
+
+            // Make it so the user can't resize the JFrame
+            this.setResizable(false);
+
+            // Makes the JFrame visible to the user
+            this.setVisible(true);
+
+        }
+
+        // Inner class within RecoveryPage which has the contents of recovery screen
+        public class RecoveryGUI extends JPanel {
+
+            // Constructs the text and buttons for the password recovery page
+            private final JLabel explainationtext = new JLabel("                                Please enter your username to recovery your password");
+            private final JLabel usernametext = new JLabel("Username");
+            private final JTextField usernamefield;
+            private final JButton sendemailbutton = new JButton("Send email");
+            private final JButton backtologinbutton = new JButton("Back to login");
+
+            public RecoveryGUI (){
+
+                // Initializes text fields and buttons before setting up events
+                usernamefield = new JTextField(15);
+
+                // Set the layout manager for the main panel
+                setLayout(new GridLayout(10, 1, 5, 5));
+
+                // Adds the items in order into the JPanel
+                this.add(explainationtext);
+                this.add(usernametext);
+                this.add(usernamefield);
+                this.add(sendemailbutton);
+                this.add(backtologinbutton);
+
+                // Calls the method that handles events
+                RecoveryGUIEvents();
+            }
+
+            public void RecoveryGUIEvents(){
+
+                // Sends an email to the associated username within the database
+                // Placeholder: If possible, check to see if the username is valid within the database and give the user an error if the username does not exist
+                sendemailbutton.addActionListener(arg0 ->{
+                    String username = usernamefield.getText();
+                    try {
+                        if(client.recoverPassword(username)){
+                            JOptionPane.showMessageDialog(this, "An Email has been sent to the associated username.", "Success", JOptionPane.INFORMATION_MESSAGE);
+                            System.out.println("An email has been sent to the user to recovery their password");
+                            // After an email has been sent, close recovery page and goes back to the login page
+                            RecoveryPage.this.setVisible(false);
+                            new LoginPage();
+                        }else{
+                            JOptionPane.showMessageDialog(this, "Username Doesn't Exist", "Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                });
+
+                // Takes the user back to the login page
+                backtologinbutton.addActionListener(arg0 -> {
+                    RecoveryPage.this.setVisible(false);
+                    new LoginPage();
+                });
+            }
+        }
+    }
+
+    // Makes sure the client is running
+    public static void main(String[] args) {
+        new ClientGUI();
+        System.out.println("System is now running");
+    }
+}
